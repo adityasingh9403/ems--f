@@ -1,0 +1,182 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext'; // 1. Naya import
+import { CheckSquare, Square, Plus, Trash2, ClipboardCheck, Save } from 'lucide-react';
+import { showToast } from '../../utils/uiHelpers';
+import LoadingSpinner from '../Common/LoadingSpinner';
+import EmptyState from '../Common/EmptyState';
+import {
+    apiGetEmployees,
+    apiGetOnboardingChecklist,
+    apiUpdateOnboardingChecklist
+} from '../../apiService';
+import useIntersectionObserver from '../../hooks/useIntersectionObserver';
+
+const Onboarding = () => {
+    const { user } = useAuth();
+    const { updateCounter } = useNotification(); // 2. Context se counter lein
+    const [employees, setEmployees] = useState([]);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+    const [checklist, setChecklist] = useState([]);
+    const [initialChecklist, setInitialChecklist] = useState([]);
+    const [newItemText, setNewItemText] = useState('');
+    const [loadingEmployees, setLoadingEmployees] = useState(true);
+    const [loadingChecklist, setLoadingChecklist] = useState(false);
+
+    const [observer, setElements, entries] = useIntersectionObserver({
+        threshold: 0.1,
+        rootMargin: '0px',
+    });
+
+    useEffect(() => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, [entries, observer]);
+
+    useEffect(() => {
+        if (!loadingEmployees) {
+            const sections = document.querySelectorAll('.fade-in-section');
+            setElements(sections);
+        }
+    }, [setElements, loadingEmployees, selectedEmployeeId]);
+
+    // Fetch employees for the dropdown
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            if (!user) return;
+            setLoadingEmployees(true);
+            try {
+                const response = await apiGetEmployees();
+                const employeesData = response.data?.$values || [];
+                setEmployees(employeesData);
+            } catch (error) {
+                showToast("Could not fetch employees.", "error");
+                setEmployees([]);
+            } finally {
+                setLoadingEmployees(false);
+            }
+        };
+        fetchEmployees();
+    }, [user]);
+
+    const fetchChecklist = async () => {
+        if (selectedEmployeeId) {
+            setLoadingChecklist(true);
+            try {
+                const response = await apiGetOnboardingChecklist(selectedEmployeeId);
+                const checklistData = response.data?.$values || [];
+                setChecklist(checklistData);
+                setInitialChecklist(JSON.parse(JSON.stringify(checklistData)));
+            } catch (error) {
+                showToast("Could not fetch checklist for this employee.", "error");
+                setChecklist([]);
+                setInitialChecklist([]);
+            } finally {
+                setLoadingChecklist(false);
+            }
+        } else {
+            setChecklist([]);
+            setInitialChecklist([]);
+        }
+    };
+    
+    // 3. 'updateCounter' ko dependency array mein add karein
+    useEffect(() => {
+        fetchChecklist();
+    }, [selectedEmployeeId, updateCounter]);
+
+
+    const handleToggleItem = (index) => {
+        const updatedList = [...checklist];
+        updatedList[index].completed = !updatedList[index].completed;
+        setChecklist(updatedList);
+    };
+
+    const handleAddItem = () => {
+        if (newItemText.trim()) {
+            const updatedList = [...checklist, { text: newItemText, completed: false }];
+            setChecklist(updatedList);
+            setNewItemText('');
+        }
+    };
+
+    const handleDeleteItem = (indexToDelete) => {
+        const updatedList = checklist.filter((_, index) => index !== indexToDelete);
+        setChecklist(updatedList);
+    };
+
+    const handleSaveChanges = async () => {
+        try {
+            await apiUpdateOnboardingChecklist({
+                employeeId: parseInt(selectedEmployeeId),
+                tasks: checklist
+            });
+            showToast("Checklist saved successfully!");
+            // fetchData() ki zaroorat nahi, signal se update hoga
+            setInitialChecklist(JSON.parse(JSON.stringify(checklist)));
+        } catch (error) {
+            showToast("Failed to save checklist.", "error");
+        }
+    };
+
+    const hasChanges = JSON.stringify(checklist) !== JSON.stringify(initialChecklist);
+
+    return (
+        <div className="bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 min-h-screen space-y-6">
+            <div className="fade-in-section">
+                <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Onboarding / Offboarding Checklist</h1>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 max-w-2xl mx-auto fade-in-section">
+                <label className="font-medium text-slate-700 dark:text-slate-200">Select Employee:</label>
+                {loadingEmployees ? <LoadingSpinner /> : (
+                    <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)} className="w-full p-2 border rounded mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600">
+                        <option value="">-- Select an Employee --</option>
+                        {employees.map(e => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
+                    </select>
+                )}
+
+                {selectedEmployeeId && (
+                    <div className="mt-6 fade-in-section">
+                        <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-6">
+                            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Checklist</h2>
+                            {hasChanges && (
+                                <button onClick={handleSaveChanges} className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-teal-700">
+                                    <Save size={16} /> Save Changes
+                                </button>
+                            )}
+                        </div>
+
+                        {loadingChecklist ? <LoadingSpinner message="Loading checklist..." /> : (
+                            checklist.length > 0 ? (
+                                <div className="mt-4 space-y-3">
+                                    {checklist.map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                            <button onClick={() => handleToggleItem(i)}>
+                                                {item.completed ? <CheckSquare className="text-green-500" /> : <Square className="text-slate-400" />}
+                                            </button>
+                                            <span className={`flex-grow ${item.completed ? 'line-through text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>{item.text}</span>
+                                            <button onClick={() => handleDeleteItem(i)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="mt-4"><EmptyState icon={ClipboardCheck} title="No Checklist Found" message="Start by adding the first item below." /></div>
+                            )
+                        )}
+
+                        <div className="mt-4 flex gap-2 border-t border-slate-200 dark:border-slate-700 pt-4">
+                            <input value={newItemText} onChange={e => setNewItemText(e.target.value)} className="flex-grow p-2 border rounded bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600" placeholder="New checklist item..." />
+                            <button onClick={handleAddItem} className="bg-teal-500 text-white p-2 rounded-lg hover:bg-teal-600"><Plus /></button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default Onboarding;
