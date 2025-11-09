@@ -59,7 +59,7 @@ const Chat = () => {
         // 2. Function to setup and start SignalR
         const setupSignalR = () => {
             connection = new HubConnectionBuilder()
-                .withUrl("http://localhost:5198/chatHub")
+                .withUrl(import.meta.env.VITE_API_BASE_URL.replace("/api", "") + "/chatHub")
                 .withAutomaticReconnect()
                 .build();
 

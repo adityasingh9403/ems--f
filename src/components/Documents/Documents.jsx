@@ -25,7 +25,7 @@ const DocumentList = ({ title, icon: Icon, documents, canDelete, onDelete }) => 
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <a href={`http://localhost:5198${doc.fileUrl}`} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-500 hover:text-blue-500"><Download size={16} /></a>
+                        <a href={`${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}${doc.fileUrl}`} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-500 hover:text-blue-500"><Download size={16} /></a>
                         {canDelete && <button onClick={() => onDelete(doc.id)} className="p-2 text-slate-500 hover:text-red-500"><Trash2 size={16} /></button>}
                     </div>
                 </li>
