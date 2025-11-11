@@ -1,50 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Menu, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { apiGetNotifications } from '../../apiService';
-import { showToast } from '../../utils/uiHelpers';
+import { useNotification } from '../../contexts/NotificationContext'; // <-- NAYA IMPORT
 
 const Header = ({ onMenuToggle, title }) => {
     const { isDarkMode, toggleTheme } = useTheme();
-    const { user } = useAuth();
-    const [notifications, setNotifications] = useState([]);
+
+    // --- YEH POORA SECTION UPDATE HUA HAI ---
+    // Hum local state (useState) ke bajaye seedha context se data le rahe hain
+    const {
+        notifications,
+        unreadCount,
+        markAsRead
+    } = useNotification();
+
     const [showNotifications, setShowNotifications] = useState(false);
-    const [hasUnread, setHasUnread] = useState(false);
 
-    const checkNotifications = async () => {
-        if (!user) return;
-        try {
-            const response = await apiGetNotifications();
-            const notificationsData = response.data?.$values || [];
-            
-            setNotifications(notificationsData.slice(0, 5)); 
-            
-            // In a real app, you'd check a `is_read` flag from the backend.
-            // For now, if the new list has items and the old one didn't, show the dot.
-            if (notificationsData.length > notifications.length) {
-                setHasUnread(true);
-            }
-
-        } catch (error) {
-            // Don't show toast on interval errors to avoid spamming the user
-        }
-    };
-
-    useEffect(() => {
-        // Fetch immediately on load
-        checkNotifications();
-        // Set up polling to check for new notifications every 30 seconds
-        const intervalId = setInterval(checkNotifications, 30000); 
-        return () => clearInterval(intervalId);
-    }, [user]);
+    // useEffect aur apiGetNotifications() yahaan se HATA diye gaye hain.
+    // --- END UPDATE ---
 
     const handleBellClick = () => {
         setShowNotifications(prev => !prev);
-        // When the user opens the dropdown, mark as read
+        // Jab user dropdown khole, toh notifications ko 'read' mark karein
         if (!showNotifications) {
-            setHasUnread(false);
-            // Here you would also make an API call to mark notifications as read in the DB
+            markAsRead();
         }
     };
 
@@ -66,18 +45,22 @@ const Header = ({ onMenuToggle, title }) => {
                     <button onClick={toggleTheme} className={iconButtonClass}>
                         {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                     </button>
-                    
+
                     <div className="relative">
                         <button onClick={handleBellClick} className={`relative ${iconButtonClass}`}>
                             <Bell className="w-5 h-5" />
-                            {hasUnread && (
-                                <span className="absolute top-1.5 right-1.5 block w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900/70"></span>
+                            {/* Unread count ab context se aa raha hai */}
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                    {unreadCount}
+                                </span>
                             )}
                         </button>
                         {showNotifications && (
                             <div className="fade-in-section is-visible absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
                                 <div className="p-3 font-bold border-b border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100">Notifications</div>
                                 <div className="p-2 max-h-80 overflow-y-auto">
+                                    {/* Notification list ab context se aa rahi hai */}
                                     {notifications.length > 0 ? notifications.map(n => (
                                         <div key={n.id} className="p-2 border-b border-slate-100 dark:border-slate-700/50">
                                             <p className="text-sm text-slate-700 dark:text-slate-200">{n.message}</p>

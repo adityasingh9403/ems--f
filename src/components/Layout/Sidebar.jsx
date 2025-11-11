@@ -6,14 +6,18 @@ import {
     CheckSquare, MessageSquare, Calendar, ClipboardCheck, LifeBuoy
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiGetCompanyDetails } from '../../apiService'; // Import the new API function
+import { useNotification } from '../../contexts/NotificationContext'; // <-- NAYA IMPORT
+import { apiGetCompanyDetails } from '../../apiService';
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [companyName, setCompanyName] = useState('Your Company');
 
-    // This effect now fetches the company name from the API
+    // --- YEH NAYA CODE HAI ---
+    const { hasNewChat, clearChatNotification } = useNotification();
+    // --- END NAYA CODE ---
+
     useEffect(() => {
         const fetchCompanyData = async () => {
             if (user) {
@@ -55,22 +59,44 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         navigate('/login');
     };
 
+    // --- NavItem Component ko update kiya gaya hai ---
     const NavItem = ({ item }) => {
         const Icon = item.icon;
+
+        // Check karein ki yeh chat item hai aur naya message hai
+        const isChat = item.id === 'chat';
+        const showChatBadge = isChat && hasNewChat;
+
+        const handleClick = () => {
+            // Mobile par sidebar band karein
+            if (window.innerWidth < 1024) setSidebarOpen(false);
+            // Agar chat par click kiya hai, toh notification clear karein
+            if (isChat) {
+                clearChatNotification();
+            }
+        };
+
         return (
             <li>
                 <NavLink
                     to={item.path}
-                    onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+                    onClick={handleClick} // Updated onClick handler
                     className={({ isActive }) =>
-                        `w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
+                        `w-full flex items-center justify-between space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
                             ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
                             : 'text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10'
                         }`
                     }
                 >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium text-sm">{item.label}</span>
+                    <div className="flex items-center space-x-3">
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium text-sm">{item.label}</span>
+                    </div>
+
+                    {/* YEH NAYA BADGE HAI */}
+                    {showChatBadge && (
+                        <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                    )}
                 </NavLink>
             </li>
         );

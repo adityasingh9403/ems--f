@@ -9,6 +9,20 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
     const [error, setError] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     
+    // --- NAYA FUNCTION: Camera ko band karne ke liye ---
+    const stopCamera = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+    };
+
+    // --- NAYA FUNCTION: Modal band karne ke liye ---
+    const handleCloseModal = () => {
+        stopCamera();
+        onClose();
+    };
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -26,7 +40,6 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
         const setupFaceAPI = async () => {
              try {
                 setStatus('Loading recognition models...');
-                // Ensure faceapi is available on the window object
                 if (!window.faceapi) {
                     setError('Face detection library not loaded.');
                     setStatus('Error');
@@ -54,11 +67,9 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
 
         setupFaceAPI();
 
-        // Cleanup function to stop the camera stream when the modal is closed
+        // Cleanup function (yeh component ke band hone par camera band karega)
         return () => {
-            if (videoRef.current && videoRef.current.srcObject) {
-                videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-            }
+            stopCamera();
         };
     }, [isOpen, currentUser]);
 
@@ -98,7 +109,12 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
                         
                         showToast(`Attendance marked successfully!`, 'success');
                         onAttendanceMarked(); 
-                        setTimeout(onClose, 1500);
+                        
+                        // --- YEH CHANGE HUA HAI ---
+                        // Success hone ke baad camera band karein aur modal 1.5s baad band karein
+                        stopCamera();
+                        setTimeout(onClose, 1500); 
+                        
                     } else {
                         setError('Face not matched. Please try again.');
                         setStatus('Ready to scan');
@@ -124,7 +140,8 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md">
                 <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Smart Attendance</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                    {/* --- YEH CHANGE HUA HAI --- */}
+                    <button onClick={handleCloseModal} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                         <X className="w-5 h-5 text-slate-500" />
                     </button>
                 </div>
