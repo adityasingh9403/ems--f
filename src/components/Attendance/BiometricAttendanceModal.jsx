@@ -123,6 +123,7 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
                 } catch (e) {
                     setError('Error verifying face. Your face data might be corrupted. Please try registering your face again.');
                     setStatus('Error');
+					console.error("Face verification error:", e); // Error log add kiya
                     setIsProcessing(false);
                 }
             } else {
@@ -141,6 +142,7 @@ const BiometricAttendanceModal = ({ isOpen, onClose, onAttendanceMarked, current
                 <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Smart Attendance</h2>
                     {/* --- YEH CHANGE HUA HAI --- */}
+                    {/* Ab yeh naya function call karega jo camera ko band karta hai */}
                     <button onClick={handleCloseModal} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                         <X className="w-5 h-5 text-slate-500" />
                     </button>

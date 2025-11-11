@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext'; // <-- NAYA IMPORT
-import { apiGetCompanyDetails } from '../../apiService';
+import { apiGetCompanyDetails } from '../../apiService'; 
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const { user, logout } = useAuth();
@@ -15,6 +15,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const [companyName, setCompanyName] = useState('Your Company');
 
     // --- YEH NAYA CODE HAI ---
+    // Notification context se 'hasNewChat' state aur use clear karne wala function lein
     const { hasNewChat, clearChatNotification } = useNotification();
     // --- END NAYA CODE ---
 
@@ -62,7 +63,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     // --- NavItem Component ko update kiya gaya hai ---
     const NavItem = ({ item }) => {
         const Icon = item.icon;
-
+        
         // Check karein ki yeh chat item hai aur naya message hai
         const isChat = item.id === 'chat';
         const showChatBadge = isChat && hasNewChat;
@@ -92,8 +93,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                         <Icon className="w-5 h-5" />
                         <span className="font-medium text-sm">{item.label}</span>
                     </div>
-
-                    {/* YEH NAYA BADGE HAI */}
+                    
+                    {/* YEH NAYA BADGE (LAAL DOT) HAI */}
                     {showChatBadge && (
                         <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
                     )}
